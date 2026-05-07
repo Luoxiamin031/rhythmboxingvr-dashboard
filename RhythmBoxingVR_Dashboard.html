@@ -1,0 +1,1776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RhythmBoxingVR — Admin Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #18181f;
+    --border: #2a2a35;
+    --accent: #e63946;
+    --accent2: #ff6b6b;
+    --gold: #ffd60a;
+    --text: #f0f0f5;
+    --muted: #7a7a8c;
+    --green: #2cb67d;
+    --blue: #4cc9f0;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-body: 'DM Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ---- LOGIN SCREEN ---- */
+  #loginScreen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(230,57,70,0.15) 0%, transparent 60%),
+      var(--bg);
+    position: relative;
+  }
+  #loginScreen::before {
+    content: 'RHYTHMBOXINGVR';
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: var(--font-display);
+    font-size: clamp(60px, 15vw, 180px);
+    color: rgba(255,255,255,0.015);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    width: 380px;
+    padding: 48px 40px;
+    position: relative;
+    z-index: 1;
+  }
+  .login-logo {
+    font-family: var(--font-display);
+    font-size: 38px;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+    line-height: 1;
+  }
+  .login-logo span { color: var(--accent); }
+  .login-sub {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 36px;
+    font-family: var(--font-mono);
+  }
+  .form-group { margin-bottom: 20px; }
+  .form-group label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    font-family: var(--font-mono);
+  }
+  .form-group input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 12px 16px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus { border-color: var(--accent); }
+  .btn-primary {
+    width: 100%;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 14px;
+    font-family: var(--font-display);
+    font-size: 18px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    margin-top: 8px;
+  }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-primary:active { transform: scale(0.98); }
+  #loginError {
+    color: var(--accent);
+    font-size: 12px;
+    margin-top: 12px;
+    font-family: var(--font-mono);
+    display: none;
+  }
+
+  /* ---- CONFIG SCREEN ---- */
+  #configScreen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background: var(--bg);
+  }
+  .config-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--blue);
+    width: 460px;
+    padding: 48px 40px;
+  }
+  .config-card h2 {
+    font-family: var(--font-display);
+    font-size: 32px;
+    margin-bottom: 6px;
+  }
+  .config-desc {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 28px;
+    line-height: 1.6;
+  }
+  .config-desc a { color: var(--blue); }
+  .step-badge {
+    display: inline-block;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    margin-bottom: 24px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* ---- MAIN DASHBOARD ---- */
+  #dashboard { display: none; }
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    height: 60px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-brand {
+    font-family: var(--font-display);
+    font-size: 24px;
+    letter-spacing: 2px;
+  }
+  .topbar-brand span { color: var(--accent); }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .admin-badge {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: rgba(230,57,70,0.15);
+    border: 1px solid rgba(230,57,70,0.3);
+    color: var(--accent);
+    padding: 4px 10px;
+    letter-spacing: 1px;
+  }
+  .btn-logout {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 6px 16px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover { border-color: var(--accent); color: var(--accent); }
+
+  .layout {
+    display: flex;
+    min-height: calc(100vh - 60px);
+  }
+  .sidebar {
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    flex-shrink: 0;
+    position: sticky;
+    top: 60px;
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+  }
+  .sidebar-section {
+    padding: 0 20px;
+    margin-bottom: 24px;
+  }
+  .sidebar-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    padding: 0 4px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--muted);
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+    margin-bottom: 2px;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active { color: var(--text); border-left-color: var(--accent); background: var(--surface2); }
+  .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+  .main {
+    flex: 1;
+    padding: 32px;
+    overflow-y: auto;
+  }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .page-header {
+    margin-bottom: 28px;
+  }
+  .page-title {
+    font-family: var(--font-display);
+    font-size: 42px;
+    letter-spacing: 1px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .page-subtitle {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  /* ---- STAT CARDS ---- */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+  }
+  .stat-card.red::before { background: var(--accent); }
+  .stat-card.gold::before { background: var(--gold); }
+  .stat-card.green::before { background: var(--green); }
+  .stat-card.blue::before { background: var(--blue); }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 40px;
+    line-height: 1;
+  }
+
+  /* ---- TABLES ---- */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .table-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .table-card-title {
+    font-family: var(--font-display);
+    font-size: 20px;
+    letter-spacing: 1px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    background: var(--surface2);
+    padding: 10px 16px;
+    text-align: left;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 400;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.15s; }
+  tbody tr:hover { background: var(--surface2); }
+  tbody td { padding: 12px 16px; vertical-align: middle; }
+  .rank-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .rank-1 { background: var(--gold); color: #000; }
+  .rank-2 { background: #c0c0c0; color: #000; }
+  .rank-3 { background: #cd7f32; color: #fff; }
+  .rank-other { background: var(--surface2); color: var(--muted); }
+  .score-display {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gold);
+  }
+  .diff-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 10px;
+    font-family: var(--font-mono);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .diff-Easy { background: rgba(44,182,125,0.2); color: var(--green); border: 1px solid rgba(44,182,125,0.3); }
+  .diff-Normal { background: rgba(76,201,240,0.2); color: var(--blue); border: 1px solid rgba(76,201,240,0.3); }
+  .diff-Hard { background: rgba(255,180,50,0.2); color: var(--gold); border: 1px solid rgba(255,180,50,0.3); }
+  .diff-Expert { background: rgba(230,57,70,0.2); color: var(--accent); border: 1px solid rgba(230,57,70,0.3); }
+  .diff-ExpertPlus { background: rgba(180,0,255,0.2); color: #c084fc; border: 1px solid rgba(180,0,255,0.3); }
+
+  /* ---- BUTTONS ---- */
+  .btn { padding: 8px 16px; cursor: pointer; font-family: var(--font-body); font-size: 13px; border: none; transition: all 0.15s; }
+  .btn-danger { background: rgba(230,57,70,0.15); color: var(--accent); border: 1px solid rgba(230,57,70,0.3); }
+  .btn-danger:hover { background: var(--accent); color: #fff; }
+  .btn-success { background: rgba(44,182,125,0.15); color: var(--green); border: 1px solid rgba(44,182,125,0.3); }
+  .btn-success:hover { background: var(--green); color: #fff; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+  .btn-icon { padding: 6px 10px; font-size: 14px; }
+
+  /* ---- UPLOAD ZONE ---- */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    padding: 48px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    background: var(--surface);
+    margin-bottom: 24px;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(230,57,70,0.05);
+  }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .upload-icon { font-size: 40px; margin-bottom: 12px; }
+  .upload-text { font-size: 16px; margin-bottom: 6px; }
+  .upload-hint { font-size: 12px; color: var(--muted); font-family: var(--font-mono); }
+
+  /* ---- UPLOAD FORM ---- */
+  .upload-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 28px;
+    margin-bottom: 24px;
+  }
+  .upload-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .input-field {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 14px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-field:focus { border-color: var(--accent); }
+  .input-label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-family: var(--font-mono);
+  }
+  textarea.input-field { resize: vertical; min-height: 80px; }
+  select.input-field {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%237a7a8c' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+  }
+
+  /* ---- PROGRESS BAR ---- */
+  .progress-bar-wrap {
+    background: var(--surface2);
+    height: 4px;
+    width: 100%;
+    margin-top: 12px;
+    display: none;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  /* ---- STATUS ---- */
+  .status-msg {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 10px 14px;
+    margin-top: 12px;
+    display: none;
+  }
+  .status-msg.success { background: rgba(44,182,125,0.1); color: var(--green); border: 1px solid rgba(44,182,125,0.2); }
+  .status-msg.error { background: rgba(230,57,70,0.1); color: var(--accent); border: 1px solid rgba(230,57,70,0.2); }
+  .status-msg.loading { background: rgba(76,201,240,0.1); color: var(--blue); border: 1px solid rgba(76,201,240,0.2); }
+
+  /* ---- SONG CARD ---- */
+  .songs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .song-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: border-color 0.15s;
+  }
+  .song-card:hover { border-color: var(--accent); }
+  .song-card-thumb {
+    height: 100px;
+    background: linear-gradient(135deg, var(--surface2) 0%, #1a0a0f 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .song-card-thumb::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 50%, var(--surface) 100%);
+  }
+  .song-card-body { padding: 14px 16px; }
+  .song-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .song-artist { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .song-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .song-size { font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .song-actions { display: flex; gap: 8px; }
+
+  /* ---- USER TABLE ---- */
+  .user-avatar {
+    width: 30px;
+    height: 30px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .status-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .dot-active { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-inactive { background: var(--muted); }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    display: none;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--accent);
+    padding: 32px;
+    width: 420px;
+    max-width: 90vw;
+  }
+  .modal h3 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    margin-bottom: 12px;
+  }
+  .modal p { color: var(--muted); font-size: 14px; margin-bottom: 24px; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 12px; justify-content: flex-end; }
+
+  /* ---- LOADING SPINNER ---- */
+  .spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---- EMPTY STATE ---- */
+  .empty-state {
+    text-align: center;
+    padding: 60px 32px;
+    color: var(--muted);
+  }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+  .empty-text { font-size: 16px; margin-bottom: 6px; }
+  .empty-hint { font-size: 13px; }
+
+  /* ---- NOTIFICATION TOAST ---- */
+  #toast {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--green);
+    padding: 14px 20px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    z-index: 9999;
+    transform: translateX(120%);
+    transition: transform 0.3s;
+    max-width: 300px;
+  }
+  #toast.show { transform: translateX(0); }
+  #toast.error { border-left-color: var(--accent); }
+
+  /* ---- SETUP SQL BLOCK ---- */
+  .sql-block {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--blue);
+    white-space: pre;
+    overflow-x: auto;
+    margin: 12px 0;
+    line-height: 1.7;
+  }
+
+  .collapsible-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 12px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    margin-bottom: 0;
+    user-select: none;
+  }
+  .collapsible-header:hover { border-color: var(--muted); }
+  .collapsible-body {
+    border: 1px solid var(--border);
+    border-top: none;
+    padding: 16px;
+    display: none;
+  }
+  .collapsible-body.open { display: block; }
+
+  /* ---- UNITY SCRIPT SECTION ---- */
+  .code-block {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    padding: 20px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: #e6edf3;
+    overflow-x: auto;
+    line-height: 1.7;
+    white-space: pre;
+    position: relative;
+  }
+  .code-block .kw { color: #ff7b72; }
+  .code-block .str { color: #a5d6ff; }
+  .code-block .cm { color: #8b949e; }
+  .copy-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 4px 10px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .copy-btn:hover { color: var(--text); }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 768px) { .two-col { grid-template-columns: 1fr; } .upload-form-grid { grid-template-columns: 1fr; } }
+
+  /* setup screen */
+  #setupScreen { display: none; }
+  #configScreen { display: none !important; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- CONFIG SCREEN -->
+<div id="configScreen">
+  <div class="config-card">
+    <h2>⚙️ Setup Supabase</h2>
+    <p class="config-desc">
+      Paste your Supabase project URL and anon key. You can find these at<br>
+      <a href="https://supabase.com/dashboard" target="_blank">supabase.com/dashboard</a> → Project Settings → API
+    </p>
+    <div class="form-group">
+      <label>Supabase Project URL</label>
+      <input type="text" id="cfgUrl" placeholder="https://xxxxxxxxxxxx.supabase.co">
+    </div>
+    <div class="form-group">
+      <label>Anon / Public Key</label>
+      <input type="text" id="cfgKey" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
+    </div>
+
+    <div class="collapsible-header" onclick="toggleSqlGuide()">
+      <span style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">📋 SHOW REQUIRED SQL SETUP</span>
+      <span id="sqlArrow">▼</span>
+    </div>
+    <div class="collapsible-body" id="sqlGuide">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:8px">Run this in Supabase SQL Editor → New Query:</p>
+      <div class="sql-block">-- 1. Songs table
+CREATE TABLE songs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  artist TEXT,
+  bpm INTEGER,
+  difficulty TEXT DEFAULT 'Normal',
+  description TEXT,
+  file_path TEXT NOT NULL,
+  file_size BIGINT,
+  cover_emoji TEXT DEFAULT '🎵',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. Scores / Leaderboard table  
+CREATE TABLE scores (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  player_name TEXT NOT NULL,
+  player_id TEXT,
+  song_id UUID REFERENCES songs(id) ON DELETE CASCADE,
+  song_name TEXT,
+  score INTEGER NOT NULL,
+  combo INTEGER DEFAULT 0,
+  accuracy DECIMAL(5,2),
+  difficulty TEXT,
+  played_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. Storage bucket for map files
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('maps', 'maps', true);
+
+-- 4. Storage policy - allow public read
+CREATE POLICY "Public read maps"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'maps');
+
+-- 5. Allow authenticated upload
+CREATE POLICY "Authenticated upload maps"
+  ON storage.objects FOR INSERT
+  WITH CHECK (bucket_id = 'maps' AND auth.role() = 'authenticated');</div>
+    </div>
+
+    <button class="btn-primary" onclick="saveConfig()" style="margin-top:20px">SAVE & CONTINUE →</button>
+    <div id="cfgError" style="color:var(--accent);font-size:12px;margin-top:10px;font-family:var(--font-mono);display:none"></div>
+  </div>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="hidden">
+  <div class="login-card">
+    <div class="login-logo">RHYTHM<span>BOXING</span>VR</div>
+    <div class="login-sub">Admin Dashboard</div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="admin@rhythmboxingvr.com" autocomplete="email">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">SIGN IN</button>
+    <div id="loginError"></div>
+    <div style="margin-top:16px;text-align:right">
+      <span style="font-size:11px;color:var(--muted);font-family:var(--font-mono);cursor:pointer" onclick="showConfig()">⚙ Change config</span>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN DASHBOARD -->
+<div id="dashboard">
+  <div class="topbar">
+    <div class="topbar-brand">RHYTHM<span>BOXING</span>VR</div>
+    <div class="topbar-right">
+      <span class="admin-badge" id="adminEmailBadge">ADMIN</span>
+      <button class="btn-logout" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Main</div>
+        <div class="nav-item active" onclick="showPage('overview')"><span class="nav-icon">📊</span> Overview</div>
+        <div class="nav-item" onclick="showPage('songs')"><span class="nav-icon">🎵</span> Songs / Maps</div>
+        <div class="nav-item" onclick="showPage('upload')"><span class="nav-icon">📤</span> Upload Map</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Data</div>
+        <div class="nav-item" onclick="showPage('leaderboard')"><span class="nav-icon">🏆</span> Leaderboard</div>
+        <div class="nav-item" onclick="showPage('users')"><span class="nav-icon">👥</span> Users</div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Dev</div>
+        <div class="nav-item" onclick="showPage('unity')"><span class="nav-icon">🎮</span> Unity Script</div>
+      </div>
+    </div>
+
+    <div class="main">
+
+      <!-- OVERVIEW PAGE -->
+      <div class="page active" id="page-overview">
+        <div class="page-header">
+          <div class="page-title">OVERVIEW</div>
+          <div class="page-subtitle">System status and quick stats</div>
+        </div>
+        <div class="stat-grid">
+          <div class="stat-card red">
+            <div class="stat-label">Total Songs</div>
+            <div class="stat-value" id="statSongs">—</div>
+          </div>
+          <div class="stat-card gold">
+            <div class="stat-label">Total Scores</div>
+            <div class="stat-value" id="statScores">—</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-label">Unique Players</div>
+            <div class="stat-value" id="statPlayers">—</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-label">Top Score</div>
+            <div class="stat-value" id="statTopScore" style="font-size:28px">—</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="table-card">
+            <div class="table-card-header">
+              <div class="table-card-title">RECENT SCORES</div>
+            </div>
+            <table>
+              <thead><tr><th>Player</th><th>Song</th><th>Score</th></tr></thead>
+              <tbody id="recentScoresBody">
+                <tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted)">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-card">
+            <div class="table-card-header">
+              <div class="table-card-title">RECENT MAPS</div>
+            </div>
+            <table>
+              <thead><tr><th>Song</th><th>BPM</th><th>Diff</th></tr></thead>
+              <tbody id="recentMapsBody">
+                <tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted)">Loading...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- SONGS PAGE -->
+      <div class="page" id="page-songs">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <div class="page-title">SONGS / MAPS</div>
+            <div class="page-subtitle">All uploaded Beat Saber format maps</div>
+          </div>
+          <button class="btn btn-success" onclick="showPage('upload')" style="margin-top:8px">+ Upload New</button>
+        </div>
+        <div id="songsGrid" class="songs-grid">
+          <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--muted)"><span class="spinner"></span> Loading songs...</div>
+        </div>
+      </div>
+
+      <!-- UPLOAD PAGE -->
+      <div class="page" id="page-upload">
+        <div class="page-header">
+          <div class="page-title">UPLOAD MAP</div>
+          <div class="page-subtitle">Upload a Beat Saber format map (.zip folder)</div>
+        </div>
+
+        <div style="background:rgba(76,201,240,0.08);border:1px solid rgba(76,201,240,0.2);padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--blue)">
+          📦 <strong>Map folder structure required:</strong> Your zip must contain <code style="font-family:var(--font-mono)">Info.dat</code>, an <code style="font-family:var(--font-mono)">.ogg</code> audio file, and one or more <code style="font-family:var(--font-mono)">.dat</code> difficulty files. Same format as BeatSaver.com maps.
+        </div>
+
+        <div class="upload-form">
+          <div style="margin-bottom:20px">
+            <span class="input-label">Map ZIP File</span>
+            <div class="upload-zone" id="uploadZone">
+              <input type="file" id="mapFileInput" accept=".zip" onchange="handleFileSelect(this.files[0])">
+              <div class="upload-icon">📁</div>
+              <div class="upload-text" id="uploadZoneText">Drop your map .zip here or click to browse</div>
+              <div class="upload-hint">ACCEPTS: .ZIP — MAX 50MB</div>
+            </div>
+          </div>
+
+          <div class="upload-form-grid">
+            <div>
+              <span class="input-label">Song Name *</span>
+              <input type="text" class="input-field" id="upSongName" placeholder="e.g. Gangnam Style">
+            </div>
+            <div>
+              <span class="input-label">Artist</span>
+              <input type="text" class="input-field" id="upArtist" placeholder="e.g. PSY">
+            </div>
+            <div>
+              <span class="input-label">BPM</span>
+              <input type="number" class="input-field" id="upBpm" placeholder="e.g. 132">
+            </div>
+            <div>
+              <span class="input-label">Primary Difficulty</span>
+              <select class="input-field" id="upDifficulty">
+                <option>Easy</option>
+                <option selected>Normal</option>
+                <option>Hard</option>
+                <option>Expert</option>
+                <option>ExpertPlus</option>
+              </select>
+            </div>
+            <div>
+              <span class="input-label">Cover Emoji</span>
+              <input type="text" class="input-field" id="upEmoji" placeholder="🎵" maxlength="2">
+            </div>
+          </div>
+          <div>
+            <span class="input-label">Description (optional)</span>
+            <textarea class="input-field" id="upDesc" placeholder="Any notes about this map..."></textarea>
+          </div>
+
+          <div class="progress-bar-wrap" id="uploadProgress">
+            <div class="progress-bar-fill" id="uploadProgressFill"></div>
+          </div>
+          <div class="status-msg" id="uploadStatus"></div>
+
+          <div style="margin-top:16px;display:flex;gap:12px">
+            <button class="btn btn-primary" style="padding:12px 32px;font-size:16px;letter-spacing:1px" onclick="doUpload()">UPLOAD MAP</button>
+            <button class="btn btn-ghost" onclick="clearUploadForm()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEADERBOARD PAGE -->
+      <div class="page" id="page-leaderboard">
+        <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <div class="page-title">LEADERBOARD</div>
+            <div class="page-subtitle">All scores sorted by highest</div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+            <select class="input-field" id="lbSongFilter" onchange="loadLeaderboard()" style="width:200px;padding:8px 12px">
+              <option value="">All Songs</option>
+            </select>
+            <button class="btn btn-danger btn-icon" onclick="confirmClearScores()" title="Clear all scores">🗑</button>
+          </div>
+        </div>
+        <div class="table-card">
+          <table>
+            <thead><tr><th>#</th><th>Player</th><th>Song</th><th>Score</th><th>Accuracy</th><th>Diff</th><th>Date</th><th></th></tr></thead>
+            <tbody id="leaderboardBody">
+              <tr><td colspan="8" style="text-align:center;padding:20px;color:var(--muted)">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- USERS PAGE -->
+      <div class="page" id="page-users">
+        <div class="page-header">
+          <div class="page-title">USERS</div>
+          <div class="page-subtitle">Registered players (Supabase Auth users)</div>
+        </div>
+        <div style="background:rgba(255,214,10,0.08);border:1px solid rgba(255,214,10,0.2);padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--gold)">
+          ⚠️ User management requires the <strong>service_role key</strong> for full access. Below shows players derived from your scores table. To manage auth users, use your <a href="https://supabase.com/dashboard" target="_blank" style="color:var(--gold)">Supabase dashboard</a>.
+        </div>
+        <div class="table-card">
+          <table>
+            <thead><tr><th>Player</th><th>Player ID</th><th>Total Scores</th><th>Best Score</th><th>Avg Score</th><th>Last Played</th></tr></thead>
+            <tbody id="usersBody">
+              <tr><td colspan="6" style="text-align:center;padding:20px;color:var(--muted)">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- UNITY SCRIPT PAGE -->
+      <div class="page" id="page-unity">
+        <div class="page-header">
+          <div class="page-title">UNITY SCRIPT</div>
+          <div class="page-subtitle">C# script to download maps from Supabase on your Quest 2</div>
+        </div>
+
+        <div style="background:rgba(44,182,125,0.08);border:1px solid rgba(44,182,125,0.2);padding:14px 18px;margin-bottom:24px;font-size:13px;color:var(--green)">
+          🎮 Drop <code style="font-family:var(--font-mono)">SupabaseMapDownloader.cs</code> into your Unity Assets folder and attach it to a GameObject in your startup scene. It will auto-download new maps on launch.
+        </div>
+
+        <div style="margin-bottom:24px">
+          <span class="input-label">Your Supabase URL (for the script)</span>
+          <div style="display:flex;gap:8px">
+            <input type="text" class="input-field" id="scriptUrl" placeholder="https://xxxxxxxxxxxx.supabase.co" style="flex:1">
+            <input type="text" class="input-field" id="scriptKey" placeholder="anon key" style="flex:2">
+          </div>
+          <button class="btn btn-success" onclick="generateScript()" style="margin-top:10px">Generate Script</button>
+        </div>
+
+        <div id="scriptOutput" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="font-family:var(--font-mono);font-size:12px;color:var(--muted)">SupabaseMapDownloader.cs</span>
+            <button class="btn btn-ghost" style="font-size:12px" onclick="copyScript()">📋 Copy</button>
+          </div>
+          <div class="code-block" id="scriptCode"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- DELETE SONG MODAL -->
+<div class="modal-overlay" id="deleteSongModal">
+  <div class="modal">
+    <h3>🗑 Delete Song?</h3>
+    <p>This will permanently delete the song and its map file from storage. Scores for this song will also be removed. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('deleteSongModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmDeleteSong()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLEAR SCORES MODAL -->
+<div class="modal-overlay" id="clearScoresModal">
+  <div class="modal">
+    <h3>⚠️ Clear All Scores?</h3>
+    <p>This will permanently delete all scores from the leaderboard. This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('clearScoresModal')">Cancel</button>
+      <button class="btn btn-danger" onclick="doClearScores()">Clear All</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIG & SUPABASE INIT
+// ============================================================
+let supabase = null;
+let currentUser = null;
+let deletingSongId = null;
+let selectedFile = null;
+
+const CONFIG_KEY = 'rbvr_supabase_config';
+
+const HARDCODED_URL = 'https://axlitgvlqblmuzrpfole.supabase.co';
+const HARDCODED_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4bGl0Z3ZscWJsbXV6cnBmb2xlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxMzYyNDksImV4cCI6MjA5MzcxMjI0OX0.4DO2vAB0KWZnEfqkwaws9LyXPi2bOMKNMMlq0B53tcU';
+
+function loadConfig() {
+  return { url: HARDCODED_URL, key: HARDCODED_KEY };
+}
+function saveConfigData(url, key) {}
+
+function initSupabase(url, key) {
+  supabase = window.supabase.createClient(url, key);
+}
+
+function boot() {
+  initSupabase(HARDCODED_URL, HARDCODED_KEY);
+  checkSession();
+}
+
+async function saveConfig() {
+  const url = document.getElementById('cfgUrl').value.trim();
+  const key = document.getElementById('cfgKey').value.trim();
+  if (!url || !key) {
+    showCfgError('Both fields are required.');
+    return;
+  }
+  if (!url.startsWith('https://')) {
+    showCfgError('URL must start with https://');
+    return;
+  }
+  saveConfigData(url, key);
+  initSupabase(url, key);
+  // auto-fill unity script fields
+  document.getElementById('scriptUrl').value = url;
+  document.getElementById('scriptKey').value = key;
+  show('loginScreen');
+}
+
+function showCfgError(msg) {
+  const el = document.getElementById('cfgError');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function showConfig() { /* disabled - credentials are hardcoded */ }
+
+// ============================================================
+// AUTH
+// ============================================================
+async function checkSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+    showDashboard();
+  } else {
+    show('loginScreen');
+  }
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  if (!email || !pass) { showLoginError('Fill in both fields.'); return; }
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+  if (error) { showLoginError(error.message); return; }
+  currentUser = data.user;
+  showDashboard();
+}
+
+function showLoginError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+
+async function doLogout() {
+  await supabase.auth.signOut();
+  currentUser = null;
+  show('loginScreen');
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function show(screenId) {
+  ['configScreen','loginScreen','dashboard'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.display = 'none';
+    el.classList.add('hidden');
+  });
+  const target = document.getElementById(screenId);
+  target.style.display = (screenId === 'dashboard') ? 'block' : 'flex';
+  target.classList.remove('hidden');
+}
+
+function showDashboard() {
+  show('dashboard');
+  document.getElementById('adminEmailBadge').textContent = currentUser?.email || 'ADMIN';
+  document.getElementById('scriptUrl').value = HARDCODED_URL;
+  document.getElementById('scriptKey').value = HARDCODED_KEY;
+  loadOverview();
+  loadSongs();
+  loadLeaderboard();
+  loadUsers();
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event?.currentTarget?.classList.add('active');
+  // re-set active from nav clicks
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'" + name + "'")) n.classList.add('active');
+  });
+}
+
+// ============================================================
+// OVERVIEW
+// ============================================================
+async function loadOverview() {
+  const [{ count: songCount }, { count: scoreCount }, { data: scores }, { data: songs }] = await Promise.all([
+    supabase.from('songs').select('*', { count: 'exact', head: true }),
+    supabase.from('scores').select('*', { count: 'exact', head: true }),
+    supabase.from('scores').select('player_name,song_name,score,played_at').order('played_at', { ascending: false }).limit(5),
+    supabase.from('songs').select('name,bpm,difficulty,created_at').order('created_at', { ascending: false }).limit(5),
+  ]);
+
+  document.getElementById('statSongs').textContent = songCount ?? 0;
+  document.getElementById('statScores').textContent = scoreCount ?? 0;
+
+  // unique players
+  const { data: players } = await supabase.from('scores').select('player_name');
+  const unique = new Set((players || []).map(p => p.player_name));
+  document.getElementById('statPlayers').textContent = unique.size;
+
+  // top score
+  const { data: top } = await supabase.from('scores').select('score').order('score', { ascending: false }).limit(1);
+  document.getElementById('statTopScore').textContent = top?.[0]?.score?.toLocaleString() ?? '—';
+
+  // recent scores
+  const rsBody = document.getElementById('recentScoresBody');
+  if (!scores || scores.length === 0) {
+    rsBody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted)">No scores yet</td></tr>`;
+  } else {
+    rsBody.innerHTML = scores.map(s => `
+      <tr>
+        <td>${s.player_name}</td>
+        <td style="color:var(--muted);font-size:12px">${s.song_name || '—'}</td>
+        <td class="score-display">${s.score?.toLocaleString()}</td>
+      </tr>`).join('');
+  }
+
+  // recent maps
+  const rmBody = document.getElementById('recentMapsBody');
+  if (!songs || songs.length === 0) {
+    rmBody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--muted)">No songs yet</td></tr>`;
+  } else {
+    rmBody.innerHTML = songs.map(s => `
+      <tr>
+        <td>${s.name}</td>
+        <td style="font-family:var(--font-mono);font-size:12px">${s.bpm || '—'}</td>
+        <td><span class="diff-badge diff-${s.difficulty}">${s.difficulty}</span></td>
+      </tr>`).join('');
+  }
+}
+
+// ============================================================
+// SONGS
+// ============================================================
+async function loadSongs() {
+  const { data: songs, error } = await supabase.from('songs').select('*').order('created_at', { ascending: false });
+  const grid = document.getElementById('songsGrid');
+
+  if (error) { grid.innerHTML = `<div style="color:var(--accent);font-family:var(--font-mono)">${error.message}</div>`; return; }
+  if (!songs || songs.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🎵</div><div class="empty-text">No songs uploaded yet</div><div class="empty-hint">Use the Upload page to add your first map</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = songs.map(song => `
+    <div class="song-card">
+      <div class="song-card-thumb">${song.cover_emoji || '🎵'}</div>
+      <div class="song-card-body">
+        <div class="song-name">${escHtml(song.name)}</div>
+        <div class="song-artist">${escHtml(song.artist || 'Unknown Artist')}</div>
+        <div class="song-meta">
+          <span class="diff-badge diff-${song.difficulty}">${song.difficulty || 'Normal'}</span>
+          <span class="song-size">${song.bpm ? song.bpm + ' BPM' : ''}</span>
+        </div>
+        <div class="song-actions">
+          <button class="btn btn-ghost btn-icon" title="Copy download URL" onclick="copySongUrl('${song.file_path}')">🔗</button>
+          <button class="btn btn-danger btn-icon" title="Delete song" onclick="askDeleteSong('${song.id}', '${song.file_path}')">🗑</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+
+  // update song filter dropdown in leaderboard
+  const sel = document.getElementById('lbSongFilter');
+  const existing = Array.from(sel.options).map(o => o.value);
+  songs.forEach(s => {
+    if (!existing.includes(s.id)) {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.name;
+      sel.appendChild(opt);
+    }
+  });
+}
+
+async function copySongUrl(filePath) {
+  const cfg = loadConfig();
+  const url = `${cfg.url}/storage/v1/object/public/maps/${filePath}`;
+  await navigator.clipboard.writeText(url);
+  showToast('Download URL copied to clipboard!');
+}
+
+function askDeleteSong(id, filePath) {
+  deletingSongId = { id, filePath };
+  document.getElementById('deleteSongModal').classList.add('show');
+}
+
+async function confirmDeleteSong() {
+  if (!deletingSongId) return;
+  closeModal('deleteSongModal');
+  const { id, filePath } = deletingSongId;
+
+  // Delete from storage
+  await supabase.storage.from('maps').remove([filePath]);
+  // Delete from DB (cascades scores)
+  const { error } = await supabase.from('songs').delete().eq('id', id);
+  if (error) { showToast('Error: ' + error.message, true); return; }
+  showToast('Song deleted!');
+  loadSongs();
+  loadOverview();
+  deletingSongId = null;
+}
+
+// ============================================================
+// UPLOAD
+// ============================================================
+function handleFileSelect(file) {
+  if (!file) return;
+  selectedFile = file;
+  const zone = document.getElementById('uploadZone');
+  const text = document.getElementById('uploadZoneText');
+  zone.style.borderColor = 'var(--green)';
+  text.textContent = `✅ ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+
+  // Auto-fill name from filename
+  const name = file.name.replace(/\.zip$/i, '').replace(/[-_]/g, ' ');
+  if (!document.getElementById('upSongName').value) {
+    document.getElementById('upSongName').value = name;
+  }
+}
+
+// Drag and drop
+document.addEventListener('DOMContentLoaded', () => {
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    handleFileSelect(e.dataTransfer.files[0]);
+  });
+});
+
+async function doUpload() {
+  if (!selectedFile) { showUploadStatus('error', 'Please select a .zip file first.'); return; }
+  const name = document.getElementById('upSongName').value.trim();
+  if (!name) { showUploadStatus('error', 'Song name is required.'); return; }
+
+  const artist = document.getElementById('upArtist').value.trim();
+  const bpm = parseInt(document.getElementById('upBpm').value) || null;
+  const difficulty = document.getElementById('upDifficulty').value;
+  const desc = document.getElementById('upDesc').value.trim();
+  const emoji = document.getElementById('upEmoji').value.trim() || '🎵';
+
+  const safeName = name.toLowerCase().replace(/[^a-z0-9]/g, '_');
+  const fileName = `${safeName}_${Date.now()}.zip`;
+
+  showUploadStatus('loading', '<span class="spinner"></span> Uploading to Supabase Storage...');
+  document.getElementById('uploadProgress').style.display = 'block';
+  document.getElementById('uploadProgressFill').style.width = '30%';
+
+  const { data: storageData, error: storageError } = await supabase.storage
+    .from('maps')
+    .upload(fileName, selectedFile, { contentType: 'application/zip', upsert: false });
+
+  if (storageError) {
+    showUploadStatus('error', '❌ Storage error: ' + storageError.message);
+    document.getElementById('uploadProgress').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('uploadProgressFill').style.width = '70%';
+  showUploadStatus('loading', '<span class="spinner"></span> Saving song data...');
+
+  const { error: dbError } = await supabase.from('songs').insert({
+    name, artist, bpm, difficulty, description: desc,
+    file_path: fileName, file_size: selectedFile.size,
+    cover_emoji: emoji
+  });
+
+  document.getElementById('uploadProgressFill').style.width = '100%';
+
+  if (dbError) {
+    showUploadStatus('error', '❌ DB error: ' + dbError.message);
+    return;
+  }
+
+  showUploadStatus('success', `✅ "${name}" uploaded successfully!`);
+  showToast('Map uploaded: ' + name);
+  clearUploadForm();
+  loadSongs();
+  loadOverview();
+}
+
+function showUploadStatus(type, msg) {
+  const el = document.getElementById('uploadStatus');
+  el.className = 'status-msg ' + type;
+  el.innerHTML = msg;
+  el.style.display = 'block';
+}
+
+function clearUploadForm() {
+  selectedFile = null;
+  document.getElementById('mapFileInput').value = '';
+  document.getElementById('upSongName').value = '';
+  document.getElementById('upArtist').value = '';
+  document.getElementById('upBpm').value = '';
+  document.getElementById('upDesc').value = '';
+  document.getElementById('upEmoji').value = '';
+  document.getElementById('uploadZone').style.borderColor = '';
+  document.getElementById('uploadZoneText').textContent = 'Drop your map .zip here or click to browse';
+  document.getElementById('uploadProgress').style.display = 'none';
+  document.getElementById('uploadProgressFill').style.width = '0';
+  document.getElementById('uploadStatus').style.display = 'none';
+}
+
+// ============================================================
+// LEADERBOARD
+// ============================================================
+async function loadLeaderboard() {
+  const songId = document.getElementById('lbSongFilter').value;
+  let query = supabase.from('scores').select('*').order('score', { ascending: false }).limit(100);
+  if (songId) query = query.eq('song_id', songId);
+
+  const { data: scores, error } = await query;
+  const body = document.getElementById('leaderboardBody');
+
+  if (error) { body.innerHTML = `<tr><td colspan="8" style="color:var(--accent)">${error.message}</td></tr>`; return; }
+  if (!scores || scores.length === 0) {
+    body.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">No scores yet. Go punch some blocks!</td></tr>`;
+    return;
+  }
+
+  body.innerHTML = scores.map((s, i) => {
+    const rank = i + 1;
+    const rankClass = rank <= 3 ? `rank-${rank}` : 'rank-other';
+    const date = new Date(s.played_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' });
+    return `
+    <tr>
+      <td><span class="rank-badge ${rankClass}">${rank}</span></td>
+      <td><strong>${escHtml(s.player_name)}</strong></td>
+      <td style="color:var(--muted);font-size:12px">${escHtml(s.song_name || '—')}</td>
+      <td class="score-display">${s.score?.toLocaleString()}</td>
+      <td style="font-family:var(--font-mono);font-size:12px">${s.accuracy ? s.accuracy + '%' : '—'}</td>
+      <td><span class="diff-badge diff-${s.difficulty}">${s.difficulty || '—'}</span></td>
+      <td style="color:var(--muted);font-size:12px">${date}</td>
+      <td><button class="btn btn-danger btn-icon" onclick="deleteScore('${s.id}')" title="Delete">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function deleteScore(id) {
+  const { error } = await supabase.from('scores').delete().eq('id', id);
+  if (error) { showToast('Error: ' + error.message, true); return; }
+  showToast('Score deleted');
+  loadLeaderboard();
+  loadOverview();
+}
+
+function confirmClearScores() {
+  document.getElementById('clearScoresModal').classList.add('show');
+}
+async function doClearScores() {
+  closeModal('clearScoresModal');
+  const { error } = await supabase.from('scores').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  if (error) { showToast('Error: ' + error.message, true); return; }
+  showToast('All scores cleared');
+  loadLeaderboard();
+  loadOverview();
+}
+
+// ============================================================
+// USERS
+// ============================================================
+async function loadUsers() {
+  const { data: scores, error } = await supabase.from('scores').select('player_name,player_id,score,played_at');
+  const body = document.getElementById('usersBody');
+  if (error) { body.innerHTML = `<tr><td colspan="6" style="color:var(--accent)">${error.message}</td></tr>`; return; }
+  if (!scores || scores.length === 0) {
+    body.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted)">No players yet</td></tr>`;
+    return;
+  }
+
+  // Group by player_name
+  const players = {};
+  scores.forEach(s => {
+    const key = s.player_name || 'Unknown';
+    if (!players[key]) players[key] = { name: key, id: s.player_id, scores: [], lastPlayed: s.played_at };
+    players[key].scores.push(s.score);
+    if (new Date(s.played_at) > new Date(players[key].lastPlayed)) players[key].lastPlayed = s.played_at;
+  });
+
+  body.innerHTML = Object.values(players).map(p => {
+    const best = Math.max(...p.scores);
+    const avg = Math.round(p.scores.reduce((a, b) => a + b, 0) / p.scores.length);
+    const date = new Date(p.lastPlayed).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+    const initials = p.name.substring(0, 2).toUpperCase();
+    return `
+    <tr>
+      <td><div style="display:flex;align-items:center;gap:10px"><div class="user-avatar">${initials}</div><strong>${escHtml(p.name)}</strong></div></td>
+      <td style="font-family:var(--font-mono);font-size:11px;color:var(--muted)">${p.id ? p.id.substring(0, 16) + '...' : '—'}</td>
+      <td style="font-family:var(--font-mono)">${p.scores.length}</td>
+      <td class="score-display">${best?.toLocaleString()}</td>
+      <td style="font-family:var(--font-mono);color:var(--muted)">${avg?.toLocaleString()}</td>
+      <td style="color:var(--muted);font-size:12px">${date}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ============================================================
+// UNITY SCRIPT GENERATOR
+// ============================================================
+function generateScript() {
+  const url = document.getElementById('scriptUrl').value.trim();
+  const key = document.getElementById('scriptKey').value.trim();
+  if (!url || !key) { showToast('Enter your Supabase URL and anon key first', true); return; }
+
+  const script = generateUnityScript(url, key);
+  document.getElementById('scriptCode').textContent = script;
+  document.getElementById('scriptOutput').style.display = 'block';
+  showToast('Script generated! Copy and drop it into Unity.');
+}
+
+function copyScript() {
+  const code = document.getElementById('scriptCode').textContent;
+  navigator.clipboard.writeText(code);
+  showToast('Script copied to clipboard!');
+}
+
+function generateUnityScript(supabaseUrl, supabaseKey) {
+  return `using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
+using UnityEngine.Networking;
+using System.IO.Compression;
+
+// ============================================================
+// SupabaseMapDownloader.cs
+// Attach to a GameObject in your startup/menu scene.
+// Downloads new Beat Saber maps from Supabase Storage
+// to Application.persistentDataPath/maps/ on the Quest 2.
+// Generated by RhythmBoxingVR Admin Dashboard
+// ============================================================
+
+[System.Serializable]
+public class SongData
+{
+    public string id;
+    public string name;
+    public string artist;
+    public int bpm;
+    public string difficulty;
+    public string file_path;
+    public long file_size;
+    public string cover_emoji;
+    public string created_at;
+}
+
+[System.Serializable]
+public class SongList
+{
+    public SongData[] songs;
+}
+
+public class SupabaseMapDownloader : MonoBehaviour
+{
+    [Header("Supabase Config")]
+    public string supabaseUrl = "${supabaseUrl}";
+    public string supabaseAnonKey = "${supabaseKey}";
+
+    [Header("Settings")]
+    public bool downloadOnStart = true;
+    public bool showDebugLog = true;
+
+    private string mapsPath;
+    private const string SONGS_ENDPOINT = "/rest/v1/songs?select=*&order=created_at.desc";
+    private const string STORAGE_BASE = "/storage/v1/object/public/maps/";
+
+    void Start()
+    {
+        mapsPath = Path.Combine(Application.persistentDataPath, "maps");
+        if (!Directory.Exists(mapsPath))
+            Directory.CreateDirectory(mapsPath);
+
+        if (downloadOnStart)
+            StartCoroutine(SyncMaps());
+    }
+
+    public IEnumerator SyncMaps()
+    {
+        Log("Syncing maps from Supabase...");
+
+        // Fetch song list
+        string apiUrl = supabaseUrl + SONGS_ENDPOINT;
+        using (UnityWebRequest req = UnityWebRequest.Get(apiUrl))
+        {
+            req.SetRequestHeader("apikey", supabaseAnonKey);
+            req.SetRequestHeader("Authorization", "Bearer " + supabaseAnonKey);
+            req.SetRequestHeader("Content-Type", "application/json");
+
+            yield return req.SendWebRequest();
+
+            if (req.result != UnityWebRequest.Result.Success)
+            {
+                LogError("Failed to fetch songs: " + req.error);
+                yield break;
+            }
+
+            string json = "{\"songs\":" + req.downloadHandler.text + "}";
+            SongList songList = JsonUtility.FromJson<SongList>(json);
+
+            if (songList == null || songList.songs == null)
+            {
+                Log("No songs found in database.");
+                yield break;
+            }
+
+            Log("Found " + songList.songs.Length + " songs in database.");
+            int downloaded = 0;
+
+            foreach (SongData song in songList.songs)
+            {
+                string songFolderName = SanitizeName(song.name) + "_" + song.id.Substring(0, 8);
+                string songFolderPath = Path.Combine(mapsPath, songFolderName);
+
+                // Skip if already downloaded
+                if (Directory.Exists(songFolderPath))
+                {
+                    Log("Already exists: " + song.name);
+                    continue;
+                }
+
+                // Download zip
+                string downloadUrl = supabaseUrl + STORAGE_BASE + song.file_path;
+                Log("Downloading: " + song.name + " from " + downloadUrl);
+
+                string tempZipPath = Path.Combine(mapsPath, song.id + "_temp.zip");
+
+                using (UnityWebRequest dlReq = UnityWebRequest.Get(downloadUrl))
+                {
+                    yield return dlReq.SendWebRequest();
+
+                    if (dlReq.result != UnityWebRequest.Result.Success)
+                    {
+                        LogError("Failed to download " + song.name + ": " + dlReq.error);
+                        continue;
+                    }
+
+                    // Write zip to temp file
+                    File.WriteAllBytes(tempZipPath, dlReq.downloadHandler.data);
+
+                    // Extract zip
+                    try
+                    {
+                        Directory.CreateDirectory(songFolderPath);
+                        ZipFile.ExtractToDirectory(tempZipPath, songFolderPath);
+                        File.Delete(tempZipPath);
+                        downloaded++;
+                        Log("Extracted: " + song.name + " -> " + songFolderPath);
+                    }
+                    catch (Exception e)
+                    {
+                        LogError("Failed to extract " + song.name + ": " + e.Message);
+                        if (Directory.Exists(songFolderPath))
+                            Directory.Delete(songFolderPath, true);
+                        if (File.Exists(tempZipPath))
+                            File.Delete(tempZipPath);
+                    }
+                }
+            }
+
+            Log("Sync complete. Downloaded " + downloaded + " new maps.");
+        }
+    }
+
+    public IEnumerator SubmitScore(string playerName, string playerId,
+        string songId, string songName, int score,
+        int combo, float accuracy, string difficulty)
+    {
+        string endpoint = supabaseUrl + "/rest/v1/scores";
+        string body = JsonUtility.ToJson(new ScorePayload {
+            player_name = playerName,
+            player_id = playerId,
+            song_id = songId,
+            song_name = songName,
+            score = score,
+            combo = combo,
+            accuracy = Mathf.Round(accuracy * 100f) / 100f,
+            difficulty = difficulty
+        });
+
+        using (UnityWebRequest req = new UnityWebRequest(endpoint, "POST"))
+        {
+            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(body);
+            req.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            req.downloadHandler = new DownloadHandlerBuffer();
+            req.SetRequestHeader("apikey", supabaseAnonKey);
+            req.SetRequestHeader("Authorization", "Bearer " + supabaseAnonKey);
+            req.SetRequestHeader("Content-Type", "application/json");
+            req.SetRequestHeader("Prefer", "return=minimal");
+
+            yield return req.SendWebRequest();
+
+            if (req.result == UnityWebRequest.Result.Success)
+                Log("Score submitted for " + playerName + ": " + score);
+            else
+                LogError("Score submit failed: " + req.error + " | " + req.downloadHandler.text);
+        }
+    }
+
+    private string SanitizeName(string name)
+    {
+        string safe = "";
+        foreach (char c in name)
+        {
+            if (char.IsLetterOrDigit(c)) safe += c;
+            else if (c == ' ' || c == '-' || c == '_') safe += '_';
+        }
+        return safe.Length > 30 ? safe.Substring(0, 30) : safe;
+    }
+
+    private void Log(string msg)
+    {
+        if (showDebugLog) Debug.Log("[MapDownloader] " + msg);
+    }
+    private void LogError(string msg) { Debug.LogError("[MapDownloader] " + msg); }
+}
+
+[System.Serializable]
+public class ScorePayload
+{
+    public string player_name;
+    public string player_id;
+    public string song_id;
+    public string song_name;
+    public int score;
+    public int combo;
+    public float accuracy;
+    public string difficulty;
+}`;
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = '', 3000);
+}
+
+function toggleSqlGuide() {
+  const body = document.getElementById('sqlGuide');
+  const arrow = document.getElementById('sqlArrow');
+  body.classList.toggle('open');
+  arrow.textContent = body.classList.contains('open') ? '▲' : '▼';
+}
+
+// ============================================================
+// BOOT
+// ============================================================
+boot();
+</script>
+</body>
+</html>
+`;
